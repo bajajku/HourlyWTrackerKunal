@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct WeatherView: View {
-    @StateObject private var viewModel = WeatherViewModel()
+    @StateObject var viewModel = WeatherViewModel()
     @StateObject private var locationManager = MyLocationManager()
-
+    let city: String
     var body: some View {
         ZStack {
             // Background gradient for app
@@ -71,7 +71,7 @@ struct WeatherView: View {
             }
         }
         .onAppear {
-            viewModel.getWeather(for: "Toronto", aqi: "no") { result in
+            viewModel.getWeather(for: city, aqi: "no") { result in
                 switch result {
                 case .success:
                     print("Weather data fetched successfully.")
@@ -83,6 +83,6 @@ struct WeatherView: View {
     }
 }
 
-#Preview {
-    WeatherView()
-}
+//#Preview {
+//    WeatherView()
+//}

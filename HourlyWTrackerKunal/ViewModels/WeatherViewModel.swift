@@ -10,6 +10,7 @@ class WeatherViewModel: ObservableObject, Identifiable {
     
     let baseURL: String = "https://api.weatherapi.com/v1/forecast.json?"
     let key: String = "0f9872779b184f46b1c185742241011"
+    let city: String = "Toronto"
     
     func getWeather(for city: String , aqi: String, completion: @escaping (Result<Data, Error>) -> Void) {
         
