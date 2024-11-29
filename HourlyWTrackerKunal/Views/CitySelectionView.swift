@@ -41,6 +41,7 @@ struct CitySelectionView: View {
                             errorMessage = nil
                         } else {
                             errorMessage = "Failed to fetch weather data for \(cityName). Please try again."
+                            showWeatherView = false // Ensure it doesn't navigate to the WeatherView
                         }
                     }
                 }

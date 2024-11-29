@@ -33,10 +33,16 @@ class CitySelectionViewModel: ObservableObject {
     // Function to fetch weather forecast
     func fetchWeatherForecast(for cityName: String, completion: @escaping (Bool) -> Void) {
         weatherViewModel.getWeather(for: cityName, aqi: "no")
-        if weatherViewModel.weather != nil {
-            completion(true)
-        } else {
-            completion(false)
+        
+        // Delay the completion to allow data fetching
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            if let weather = self?.weatherViewModel.weather {
+                print("Weather Data Fetched: \(weather)")
+                completion(true)
+            } else {
+                print("Failed to fetch weather data")
+                completion(false)
+            }
         }
     }
 }
