@@ -6,21 +6,22 @@
 //
 
 import SwiftUI
+
 struct HourlyForecastView: View {
     @ObservedObject var viewModel: WeatherViewModel
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Hourly Forecast")
+            Text("Hourly Forecast (Next 7 Hours)")
                 .font(.headline)
                 .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 20) {
-                    if let forecastHours = viewModel.weather?.forecast?.forecastday?.first?.hour {
+                    if let forecastHours = getNextSevenHours(from: viewModel.weather?.forecast?.forecastday?.first?.hour) {
                         ForEach(forecastHours, id: \.time_epoch) { hour in
                             VStack {
-                                Text(hour.time ?? "")
+                                Text(getFormattedTime(from: hour.time))
                                     .font(.caption)
                                     .foregroundColor(.white)
                                 
@@ -51,13 +52,24 @@ struct HourlyForecastView: View {
         }
         .padding(.vertical)
     }
-}
-
-struct HourlyForecastView_Previews: PreviewProvider {
-    static var previews: some View {
-        HourlyForecastView(viewModel: WeatherViewModel())
+    
+    // Function to filter and get the next 7 hours of forecast
+    private func getNextSevenHours(from hours: [Hour]?) -> [Hour]? {
+        guard let hours = hours else { return nil }
+        let currentEpoch = Date().timeIntervalSince1970
+        let sevenHoursLater = currentEpoch + (7 * 60 * 60)
+        return hours.filter { $0.time_epoch ?? 0 >= Int(currentEpoch) && $0.time_epoch ?? 0 <= Int(sevenHoursLater) }
     }
-}
-#Preview {
-    HourlyForecastView(viewModel: WeatherViewModel())
+    
+    // Function to format the time string
+    private func getFormattedTime(from time: String?) -> String {
+        guard let time = time else { return "N/A" }
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        if let date = dateFormatter.date(from: time) {
+            dateFormatter.dateFormat = "h a" // Example: "2 PM"
+            return dateFormatter.string(from: date)
+        }
+        return time
+    }
 }
