@@ -1,9 +1,8 @@
 import SwiftUI
 
 struct WeatherView: View {
-    @StateObject var viewModel = WeatherViewModel()
+    @ObservedObject var viewModel: WeatherViewModel
     @StateObject private var locationManager = MyLocationManager()
-    let city: String
     var body: some View {
         ZStack {
             // Background gradient for app
@@ -68,16 +67,6 @@ struct WeatherView: View {
                     }
                 }
                 .padding()
-            }
-        }
-        .onAppear {
-            viewModel.getWeather(for: city, aqi: "no") { result in
-                switch result {
-                case .success:
-                    print("Weather data fetched successfully.")
-                case .failure(let error):
-                    print("Failed to fetch weather data: \(error)")
-                }
             }
         }
     }

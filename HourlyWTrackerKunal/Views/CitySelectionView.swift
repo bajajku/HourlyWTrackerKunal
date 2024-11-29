@@ -1,14 +1,12 @@
-//
-//  CitySelectionView.swift
-//  HourlyWTrackerKunal
-//
-//  Created by Kunal Bajaj on 2024-11-27.
-//
-
 import SwiftUI
 
 struct CitySelectionView: View {
-    @State private var cityName: String = ""    
+    @State private var cityName: String = ""
+    @State private var citySuggestions: [String] = []
+    @StateObject private var citySelectionViewModel = CitySelectionViewModel()
+    @State private var errorMessage: String? = nil
+    @State private var showWeatherView: Bool = false
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
@@ -16,27 +14,55 @@ struct CitySelectionView: View {
                 TextField("Enter city name", text: $cityName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
+                    .onChange(of: cityName) { newValue in
+                        citySelectionViewModel.updateCitySuggestions(for: newValue)
+                        citySuggestions = citySelectionViewModel.citySuggestions
+                    }
+                
+                // City Suggestions List
+                if !citySuggestions.isEmpty {
+                    List(citySuggestions, id: \.self) { suggestion in
+                        Button(action: {
+                            cityName = suggestion
+                            citySuggestions = [] // Clear suggestions after selection
+                        }) {
+                            Text(suggestion)
+                        }
+                    }
+                    .listStyle(PlainListStyle())
+                    .frame(height: 150) // Adjust height as needed
+                }
                 
                 // Search Button
-                NavigationLink(
-                    destination: WeatherView(city: cityName)
-                ) {
-                    Text("Search")
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(8)
+                Button("Search") {
+                    citySelectionViewModel.fetchWeatherForecast(for: cityName) { success in
+                        if success {
+                            showWeatherView = true
+                            errorMessage = nil
+                        } else {
+                            errorMessage = "Failed to fetch weather data for \(cityName). Please try again."
+                        }
+                    }
                 }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(cityName.isEmpty ? Color.gray : Color.blue)
+                .cornerRadius(8)
                 .disabled(cityName.isEmpty)
                 
-                // Placeholder for Weather Info or Error Message
-                Text("Weather information or error message will appear here.")
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding()
+                // Error Message
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                }
                 
                 Spacer()
+            }
+            .sheet(isPresented: $showWeatherView) {
+                WeatherView(viewModel: citySelectionViewModel.weatherViewModel)
             }
             .padding()
         }

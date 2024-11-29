@@ -12,7 +12,7 @@ class WeatherViewModel: ObservableObject, Identifiable {
     let key: String = "0f9872779b184f46b1c185742241011"
     let city: String = "Toronto"
     
-    func getWeather(for city: String , aqi: String, completion: @escaping (Result<Data, Error>) -> Void) {
+    func getWeather(for city: String , aqi: String) {
         
         let urlString = baseURL + "key=\(key)&q=\(city)&aqi=\(aqi)&alerts=no"
         print("URL: \(urlString)")
@@ -23,7 +23,6 @@ class WeatherViewModel: ObservableObject, Identifiable {
         let task = URLSession.shared.dataTask(with: url){data, _ , error in
             if let error {
                 print("Error: \(error)")
-                completion(.failure(error))
                 return
             }
             
