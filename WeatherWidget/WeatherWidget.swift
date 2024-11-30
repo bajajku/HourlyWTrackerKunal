@@ -79,22 +79,23 @@ struct WeatherWidgetEntryView: View {
     var entry: Provider.Entry
 
     var body: some View {
-        VStack {
-            // City and Date
+        VStack(spacing: 5) {
+            // City Name
             Text(entry.configuration.city)
                 .font(.headline)
                 .lineLimit(1)
-            HStack{
-            Text(entry.date, style: .date)
-                .font(.subheadline)
+                .minimumScaleFactor(0.8)
+
+            // Date and Time (Single Line)
+            Text("\(entry.date, style: .time) • \(entry.date, style: .date)")
+                .font(.caption)
                 .foregroundColor(.secondary)
-            Text(entry.date, style: .time)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            }
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
             // Weather Information
             if let hourlyWeather = entry.hourlyWeather {
-                HStack {
+                HStack(spacing: 5) {
                     // Weather Icon
                     if let iconURL = hourlyWeather.condition?.icon,
                        let url = URL(string: "https:\(iconURL)"),
@@ -103,24 +104,28 @@ struct WeatherWidgetEntryView: View {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 50, height: 50)
+                            .frame(width: 30, height: 30)
                     }
 
                     // Temperature and Condition
-                    VStack(alignment: .leading) {
-                        Text("\(String(format: "%.1f", hourlyWeather.temp_c ?? 0.0))°C")
-                            .font(.title)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(String(format: "%.0f", hourlyWeather.temp_c ?? 0.0))°C")
+                            .font(.headline)
                         Text(hourlyWeather.condition?.text ?? "")
-                            .font(.subheadline)
+                            .font(.caption)
                             .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
             } else {
-                Text("Loading weather...")
+                // Placeholder for loading state
+                Text("Loading...")
+                    .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
-        .padding()
+        .padding(8) // Reducing padding for compact fit
     }
 }
 struct WeatherWidget: Widget {
