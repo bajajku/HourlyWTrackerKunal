@@ -12,7 +12,6 @@ struct HourlyWTrackerKunalApp: App {
     var body: some Scene {
         WindowGroup {
             CitySelectionView()
-//            WeatherView()
         }
     }
 }

@@ -1,5 +1,3 @@
-
-
 import Foundation
 struct WeatherForecast : Codable {
 	let location : Location?

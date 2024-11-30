@@ -10,23 +10,33 @@ import SwiftUI
 
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: ConfigurationAppIntent(), weather: nil)
+        SimpleEntry(date: Date(), configuration: ConfigurationAppIntent(), weather: nil, hourlyWeather: nil)
     }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
         let weather = await fetchWeather(for: configuration.city)
-        return SimpleEntry(date: Date(), configuration: configuration, weather: weather)
+        return SimpleEntry(date: Date(), configuration: configuration, weather: weather, hourlyWeather: weather?.forecast?.forecastday?.first?.hour?.first)
     }
 
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
-        var entries: [SimpleEntry] = []
-        let currentDate = Date()
+        guard let weather = await fetchWeather(for: configuration.city),
+              let hourlyData = weather.forecast?.forecastday?.first?.hour else {
+            // Handle case where weather data is unavailable
+            return Timeline(entries: [], policy: .atEnd)
+        }
 
-        for hourOffset in 0 ..< 5 {
-            let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-            let weather = await fetchWeather(for: configuration.city)
-            let entry = SimpleEntry(date: entryDate, configuration: configuration, weather: weather)
-            entries.append(entry)
+        let currentDate = Date()
+        var entries: [SimpleEntry] = []
+
+        for hourOffset in 0..<5 {
+            guard let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate) else { continue }
+            let hourIndex = Calendar.current.component(.hour, from: entryDate)
+
+            if hourIndex < hourlyData.count {
+                let hourlyWeather = hourlyData[hourIndex]
+                let entry = SimpleEntry(date: entryDate, configuration: configuration, weather: weather, hourlyWeather: hourlyWeather)
+                entries.append(entry)
+            }
         }
 
         return Timeline(entries: entries, policy: .atEnd)
@@ -62,75 +72,57 @@ struct SimpleEntry: TimelineEntry {
     let date: Date
     let configuration: ConfigurationAppIntent
     let weather: WeatherForecast?
+    let hourlyWeather: Hour?
 }
 
 struct WeatherWidgetEntryView: View {
     var entry: Provider.Entry
-    
+
     var body: some View {
-        GeometryReader { geometry in
-            VStack(alignment: .center, spacing: 8) {
-                // City and Date Section
-                VStack(alignment: .center, spacing: 4) {
-                    Spacer()
-                    Text(entry.configuration.city)
-                        .font(.system(size: min(geometry.size.width * 0.1, 20), weight: .bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5) // Allow text to scale down when necessary
-                        .foregroundColor(.white) // City name color
-                    
-                    Text(entry.date, style: .date)
-                        .font(.system(size: min(geometry.size.width * 0.08, 16)))
-                        .foregroundColor(.white) // Date text color
-                    Text(entry.date, style: .time)
-                        .font(.system(size: min(geometry.size.width * 0.08, 16)))
-                        .foregroundColor(.white) // Date text color
-                }
-                .frame(maxWidth: .infinity)
-                
-                // Weather Information Section
-                if let weather = entry.weather {
-                    VStack(alignment: .center, spacing: 4) {
-                        // Weather Condition and Temperature
-                        HStack(spacing: 8) {
-                            // Weather Icon
-                            if let url = weather.current?.condition?.icon,
-                               let imageData = try? Data(contentsOf: URL(string: "https:\(url)")!),
-                               let uiImage = UIImage(data: imageData) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: min(geometry.size.width * 0.3, 100),
-                                           height: min(geometry.size.width * 0.3, 100))
-                                    .background(Circle().fill(Color.blue.opacity(0.2))) // Background color for icon
-                            }
-                            
-                            // Temperature and Condition
-                            VStack(alignment: .leading, spacing: 4) {
-                                
-                                Text("\(String(format: "%.1f", weather.current?.temp_c ?? 0.0))°C")
-                                    .font(.system(size: min(geometry.size.width * 0.12, 24), weight: .semibold))
-                                    .foregroundColor(.yellow) // Temperature color
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                } else {
-                    // Loading or Error State
-                    Text("Loading weather...")
-                        .font(.caption)
-                        .foregroundColor(.gray) // Loading text color
-                }
+        VStack {
+            // City and Date
+            Text(entry.configuration.city)
+                .font(.headline)
+                .lineLimit(1)
+            HStack{
+            Text(entry.date, style: .date)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Text(entry.date, style: .time)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
             }
-            .padding(8)
-            .frame(minWidth: geometry.size.width, minHeight: geometry.size.height, alignment: .center)
-            .background(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.purple]),
-                                       startPoint: .top, endPoint: .bottom)) // Background gradient
-            .cornerRadius(12) // Corner radius for rounded corners
+            // Weather Information
+            if let hourlyWeather = entry.hourlyWeather {
+                HStack {
+                    // Weather Icon
+                    if let iconURL = hourlyWeather.condition?.icon,
+                       let url = URL(string: "https:\(iconURL)"),
+                       let data = try? Data(contentsOf: url),
+                       let image = UIImage(data: data) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 50, height: 50)
+                    }
+
+                    // Temperature and Condition
+                    VStack(alignment: .leading) {
+                        Text("\(String(format: "%.1f", hourlyWeather.temp_c ?? 0.0))°C")
+                            .font(.title)
+                        Text(hourlyWeather.condition?.text ?? "")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } else {
+                Text("Loading weather...")
+                    .foregroundColor(.secondary)
+            }
         }
+        .padding()
     }
 }
-
 struct WeatherWidget: Widget {
     let kind: String = "WeatherWidget"
 
@@ -141,40 +133,3 @@ struct WeatherWidget: Widget {
         }
     }
 }
-
-//extension WeatherWidget {
-//    fileprivate static var preview: some View {
-//        WeatherWidgetEntryView(entry: SimpleEntry(date: .now, configuration: .smiley))
-//            .previewContext(WidgetPreviewContext(family: .systemSmall))
-//    }
-//}
-//
-//@main
-//struct WeatherWidgetBundle: WidgetBundle {
-//    @WidgetBundleBuilder
-//    var body: some Widget {
-//        WeatherWidget()
-//        WeatherWidget.preview
-//    }
-//}
-
-//extension ConfigurationAppIntent {
-//    fileprivate static var smiley: ConfigurationAppIntent {
-//        let intent = ConfigurationAppIntent()
-//        intent.favoriteEmoji = "😀"
-//        return intent
-//    }
-//    
-//    fileprivate static var starEyes: ConfigurationAppIntent {
-//        let intent = ConfigurationAppIntent()
-//        intent.favoriteEmoji = "🤩"
-//        return intent
-//    }
-//}
-
-//#Preview(as: .systemSmall) {
-//    WeatherWidget()
-//} timeline: {
-////    SimpleEntry(date: .now, configuration: .smiley)
-////    SimpleEntry(date: .now, configuration: .starEyes)
-//}
