@@ -35,7 +35,7 @@ class CitySelectionViewModel: ObservableObject {
         weatherViewModel.getWeather(for: cityName, aqi: "no")
         
         // Delay the completion to allow data fetching
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             if let weather = self?.weatherViewModel.weather {
                 print("Weather Data Fetched: \(weather)")
                 completion(true)
